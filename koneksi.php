@@ -1,7 +1,7 @@
 <?php
 $host = "154.19.37.34";
-$user = "root";
-$pass = "Nu15M@l4ng";
+$user = "cms_sekolah";
+$pass = "avT**E_2EWh@8mVD";
 $db   = "cms-sekolah";
 
 $koneksi = mysqli_connect($host, $user, $pass, $db);
