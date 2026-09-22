@@ -50,33 +50,80 @@ if (isset($_POST['simpan_profil'])) {
     }
 }
 
+
 // 2. SIMPAN HALAMAN DINAMIS
 if (isset($_POST['simpan_halaman'])) {
+
     $kategori = mysqli_real_escape_string($koneksi, $_POST['kategori']);
     $judul    = mysqli_real_escape_string($koneksi, $_POST['judul']);
     $konten   = mysqli_real_escape_string($koneksi, $_POST['konten']);
 
-    $cek = mysqli_query($koneksi, "SELECT * FROM halaman WHERE kategori='$kategori'");
+    // Cek apakah kategori sudah ada di database
+    $cek = mysqli_query(
+        $koneksi,
+        "SELECT * FROM halaman WHERE kategori='$kategori'"
+    );
 
-    if (!empty($_FILES['gambar']['name'])) {
-        $gambar_name = time() . '_' . $_FILES['gambar']['name'];
-        move_uploaded_file($_FILES['gambar']['tmp_name'], "uploads/" . $gambar_name);
+    $data_lama = mysqli_fetch_assoc($cek);
 
-        if (mysqli_num_rows($cek) > 0) {
-            $q = "UPDATE halaman SET judul='$judul', konten='$konten', gambar='$gambar_name' WHERE kategori='$kategori'";
-        } else {
-            $q = "INSERT INTO halaman (kategori, judul, konten, gambar) VALUES ('$kategori', '$judul', '$konten', '$gambar_name')";
+    // Gunakan gambar lama jika tidak upload gambar baru
+    $gambar_name = $data_lama['gambar'] ?? '';
+
+    // Jika admin memilih gambar baru
+    if (
+        isset($_FILES['gambar']) &&
+        $_FILES['gambar']['error'] !== UPLOAD_ERR_NO_FILE
+    ) {
+
+        // Cek apakah upload berhasil diterima PHP
+        if ($_FILES['gambar']['error'] !== UPLOAD_ERR_OK) {
+            die("Upload gambar gagal. Kode error: " . $_FILES['gambar']['error']);
         }
-    } else {
-        if (mysqli_num_rows($cek) > 0) {
-            $q = "UPDATE halaman SET judul='$judul', konten='$konten' WHERE kategori='$kategori'";
-        } else {
-            $q = "INSERT INTO halaman (kategori, judul, konten, gambar) VALUES ('$kategori', '$judul', '$konten', '')";
+
+        // Folder penyimpanan gambar
+        $folder = "uploads/";
+
+        // Buat folder jika belum tersedia
+        if (!is_dir($folder)) {
+            mkdir($folder, 0777, true);
+        }
+
+        // Nama file unik
+        $gambar_name = time() . "_" . basename($_FILES['gambar']['name']);
+
+        // Pindahkan gambar ke folder uploads
+        if (!move_uploaded_file(
+            $_FILES['gambar']['tmp_name'],
+            $folder . $gambar_name
+        )) {
+            die("Gagal memindahkan gambar ke folder uploads.");
         }
     }
+    // Jika data kategori sudah ada, UPDATE
+    if ($data_lama) {
 
+        $q = "UPDATE halaman SET
+                judul='$judul',
+                konten='$konten',
+                gambar='$gambar_name'
+              WHERE kategori='$kategori'";
+    } else {
+
+        // Jika belum ada, INSERT
+        $q = "INSERT INTO halaman
+                (kategori, judul, konten, gambar)
+              VALUES
+                ('$kategori', '$judul', '$konten', '$gambar_name')";
+    }
+    // Eksekusi query
     if (mysqli_query($koneksi, $q)) {
-        echo "<script>alert('Halaman Berhasil Disimpan!'); window.location='admin.php?tab=$kategori';</script>";
+
+        echo "<script>
+            alert('Halaman Berhasil Disimpan!');
+            window.location='admin.php?tab=$kategori';
+        </script>";
+    } else {
+        echo "Gagal menyimpan halaman: " . mysqli_error($koneksi);
     }
 }
 
@@ -216,16 +263,6 @@ if (isset($_POST['tambah_alumni'])) {
     }
 }
 
-
-// 6. TAMBAH USER ADMIN
-// if (isset($_POST['tambah_user'])) {
-//     $user  = mysqli_real_escape_string($koneksi, $_POST['username']);
-//     $pass  = md5($_POST['password']);
-//     $level = mysqli_real_escape_string($koneksi, $_POST['level']);
-
-//     @mysqli_query($koneksi, "INSERT INTO users (username, password, level) VALUES ('$user', '$pass', '$level')");
-//     echo "<script>alert('User Admin Berhasil Ditambahkan!'); window.location='admin.php?tab=users';</script>";
-// }
 // 6. TAMBAH USER ADMIN
 if (isset($_POST['tambah_user'])) {
 
